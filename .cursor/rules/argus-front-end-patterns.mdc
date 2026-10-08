@@ -1,0 +1,399 @@
+---
+description: easyCMDB Front-End Project Patterns and Architecture
+globs:
+alwaysApply: true
+---
+
+# easyCMDB Front-End Project Patterns
+
+> easyCMDB is the front-end SPA for a configuration management inventory POC.
+> It is a single React 19 + TypeScript app (Vite, Tailwind, shadcn/ui) served
+> from CloudFront/S3. This document describes how the code is organized today.
+
+## Project Overview
+
+- **Single application**: one app under `src/`. No multi-application aliasing.
+- **Two top-level concerns**:
+  - **Discover** — read-only listing and detail views (`pages/discover/*`)
+  - **Management** — administrative CRUD screens (`pages/manage/*`)
+- **Domain model**: Applications, Landscapes, LandscapeEnvironments, Resources
+  (defined in `src/types/cmdb.ts`).
+- **POC deploy** supports multi-environment deploy (`sb`, `dev`, `tst`, `prod`)
+  wired through GitHub Actions.
+
+## Framework & Tools
+
+### Core Framework
+
+- **React 19** — function components and hooks only. No class components.
+- **TypeScript** — strict mode (`strict: true`, `noUnusedLocals: true`,
+  `noUnusedParameters: true`).
+- **Vite 6** — `@vitejs/plugin-react` + `@tailwindcss/vite`; `@/` → `src/`;
+  dev proxy `/api` → backend.
+- **Tailwind CSS v4** — design tokens in `src/index.css` (teal/slate palette).
+- **shadcn/ui (Radix)** — copy-in primitives under `components/ui/`.
+- **React Router v7** — `createBrowserRouter` from `react-router` (not
+  `react-router-dom`).
+- **TanStack Query** — server state (lists, detail fetches, cache invalidation).
+- **Zustand** — auth/session state only (`src/stores/auth.ts`).
+- **Axios** — HTTP client (`src/api/http.ts`).
+- **sonner** — toasts; **AlertDialog** — confirm/deactivate flows.
+
+### Build & Dev Tools
+
+- **tsc** — type checking via `npm run type-check`
+  (`tsc -p tsconfig.app.json --noEmit`).
+- **ESLint flat config** + **Prettier** — `npm run lint`, `npm run format`.
+- **Vitest** + **happy-dom** — unit testing.
+- **Husky** — `pre-push` runs `test:unit:ci`, `lint`, and `type-check`.
+
+## File Organization
+
+### Directory Structure
+
+```
+src/
+├── api/
+│   ├── http.ts              # axios client + auth getter + 401 handler + parseApiError
+│   ├── cmdb.ts              # REST helpers (list/create/update/delete) for every domain
+│   └── __tests__/
+├── auth/
+│   ├── basic.ts
+│   ├── cognito.ts
+│   ├── mode.ts
+│   └── __tests__/
+├── components/
+│   ├── ui/                  # shadcn primitives only (Button, Table, Sheet, …)
+│   ├── AppShell.tsx
+│   ├── PageHeader.tsx
+│   ├── DataTable.tsx
+│   ├── SearchField.tsx
+│   ├── StatusBadge.tsx
+│   ├── EntitySheet.tsx
+│   ├── ConfirmDialog.tsx
+│   └── DetailDl.tsx
+├── hooks/
+│   ├── useApplications.ts
+│   ├── useLandscapes.ts
+│   ├── useLandscapeEnvironments.ts
+│   └── useResources.ts
+├── lib/
+│   ├── utils.ts             # cn()
+│   └── query-client.ts
+├── pages/
+│   ├── LoginPage.tsx
+│   ├── AuthCallbackPage.tsx
+│   ├── discover/            # AllApplicationsPage, SelectedAppPage, …
+│   └── manage/              # ApplicationsPage, LandscapesPage, …
+├── router/
+│   └── index.tsx            # createBrowserRouter + auth guards
+├── stores/
+│   ├── auth.ts              # Zustand auth store
+│   └── __tests__/
+├── types/
+│   └── cmdb.ts
+├── utils/
+├── App.tsx
+├── main.tsx
+└── index.css                # Tailwind + CSS variables
+```
+
+### Naming Conventions
+
+- **Components**: PascalCase `.tsx` (`AllApplicationsPage.tsx`, `DataTable.tsx`).
+- **Hooks**: camelCase with `use` prefix (`useApplications.ts`).
+- **Utils / API / stores**: camelCase `.ts` (`http.ts`, `provider-account.ts`).
+- **Types**: PascalCase (`Application`, `LandscapeEnvironment`).
+- **Constants**: UPPER_SNAKE_CASE.
+- **Route names**: kebab-case strings (`all-applications`, `selected-landscape`).
+
+## Component Patterns
+
+### Component Structure
+
+```tsx
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
+
+import { parseApiError } from '@/api/http';
+import { PageHeader } from '@/components/PageHeader';
+import { Button } from '@/components/ui/button';
+import { useApplications } from '@/hooks/useApplications';
+import type { Application } from '@/types/cmdb';
+
+type AllApplicationsPageProps = {
+  /** optional props when needed */
+};
+
+export default function AllApplicationsPage(_props: AllApplicationsPageProps) {
+  const navigate = useNavigate();
+  const { data, isLoading, refetch } = useApplications(false);
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    /* … */
+    return data ?? [];
+  }, [data, search]);
+
+  async function handleRefresh(): Promise<void> {
+    try {
+      await refetch();
+    } catch (err) {
+      toast.error(await parseApiError(err));
+    }
+  }
+
+  if (isLoading) return <div className="p-6">Loading…</div>;
+
+  return (
+    <div>
+      <PageHeader title="Applications" onRefresh={handleRefresh} />
+      {/* … */}
+    </div>
+  );
+}
+```
+
+### Component Rules
+
+- Function components only; typed props via `type` (not untyped `props`).
+- Default export for page components; named exports for shared components when
+  multiple exports exist in one file.
+- Server state in TanStack Query hooks — not inline `useEffect` + axios in
+  pages unless there is a one-off reason.
+- UI state (search text, sheet open, form drafts) stays local with `useState`.
+- User-facing errors always go through `parseApiError` + `toast` (sonner).
+- Confirms/deactivates use `ConfirmDialog` (AlertDialog), not `window.confirm`.
+
+## Data Fetching Patterns
+
+### TanStack Query hooks
+
+Domain hooks live in `src/hooks/` and wrap `src/api/cmdb.ts`:
+
+```ts
+import { useQuery } from '@tanstack/react-query';
+
+import * as cmdb from '@/api/cmdb';
+
+export const applicationsQueryKey = (includeInactive: boolean) =>
+  ['applications', includeInactive] as const;
+
+export function useApplications(includeInactive = false) {
+  return useQuery({
+    queryKey: applicationsQueryKey(includeInactive),
+    queryFn: () => cmdb.listApplications(includeInactive),
+  });
+}
+```
+
+After mutations (create/update/deactivate), invalidate related query keys via
+`queryClient.invalidateQueries`.
+
+### API response normalization
+
+`src/api/cmdb.ts` exports per-resource functions that wrap `api.get/post/patch/delete`
+and normalize list responses with `normalizeListResponse<T>` so the UI tolerates
+`Array | { items } | { data } | { results }` shapes from the backend.
+
+## API Layer Patterns
+
+### `src/api/http.ts`
+
+```ts
+export const api = createClient(); // axios with VITE_API_BASE_URL
+
+export function registerAuthorizationGetter(fn: () => string | null): void;
+export function register401Handler(fn: () => Promise<boolean>): void;
+export async function parseApiError(err: unknown): Promise<string>;
+```
+
+- Authorization header is set per-request from a getter registered in `main.tsx`.
+  Do **not** import the auth store inside `http.ts` (avoids circular deps).
+- `parseApiError` is the single source of user-facing error messages.
+
+### `src/api/cmdb.ts`
+
+Conventions:
+
+- List endpoints take `includeInactive: boolean` first; pass through
+  `inactiveParam(...)`.
+- List endpoints normalize with `normalizeListResponse<T>`.
+- Mutations return resource shape `T`; deletes return `void`.
+
+### URL & base path
+
+- Browser base URL: `import.meta.env.VITE_API_BASE_URL` (default `/api`).
+- Dev proxy: `vite.config.ts` proxies `/api` → `VITE_DEV_API_PROXY_TARGET`.
+
+## State Management Patterns
+
+### Zustand auth store
+
+Auth/session lives in `src/stores/auth.ts`. Use selector helpers exported from
+the store (`selectIsLoggedIn`, `selectIsAdmin`, `selectCanManageApplications`,
+`selectAuthorizationHeader`) rather than reading raw state in guards.
+
+```ts
+const isLoggedIn = useAuthStore((s) => selectIsLoggedIn(s));
+```
+
+Thin wrapper `useAuth.ts` is optional; prefer direct Zustand selectors in
+components and route guards.
+
+### Server state vs UI state
+
+| Concern | Where |
+| --- | --- |
+| Auth / session | Zustand (`stores/auth.ts`) |
+| Server data (lists, details) | TanStack Query (`hooks/use*.ts`) |
+| UI-only (search, modals, drafts) | Local `useState` in the component |
+
+## Type System Patterns
+
+All domain types live in `src/types/cmdb.ts`:
+
+- Use `type` over `interface`.
+- String unions for finite enums (`DataClass`, `ResourceScope`); hosting provider codes are lookup-backed strings.
+- Prefer const-object pattern over TypeScript `enum`.
+- Never use `any`. Use `unknown` at boundaries and narrow.
+- Explicit return types on exported functions.
+
+## Routing Patterns
+
+### Routes (`src/router/index.tsx`)
+
+- Public: `/login`, `/auth/callback`.
+- Authenticated tree under `AppShell`: Discover + Management pages.
+- Route names are kebab-case strings.
+- Lazy-loaded pages wrapped in `<Suspense>`.
+
+### Auth guards
+
+1. Hydrate session before first protected navigation (`HydrateAuth` layout).
+2. Unauthenticated → `/login?redirect=<fullPath>`. Never bounce logout straight
+   to Cognito `/oauth2/authorize`.
+3. `meta.admin` without `isAdmin` → Discover Applications.
+4. `meta.appEdit` without `canManageApplications` → Discover Applications.
+5. Logged-in user hitting `/login` → Discover Applications.
+
+## Styling Patterns
+
+- Tailwind utility classes in JSX; use `cn()` from `@/lib/utils` to merge classes.
+- Design tokens in `src/index.css`: primary `#0f766e`, header `#134e4a`,
+  surface `#f1f5f9`.
+- shadcn primitives in `components/ui/` — do not put feature logic there.
+- IBM Plex Sans loaded in `index.html`.
+
+## Testing Patterns
+
+- **Vitest** with **happy-dom**.
+- Colocated tests in `__tests__/` adjacent to source (`stores/__tests__/auth.test.ts`).
+- CI: `npm run test:unit:ci`.
+- Ported tests cover auth, cognito, http, provider-account utils; extend with
+  router guard and DataTable smoke tests as needed.
+
+## Import Patterns
+
+Prettier import order (`@trivago/prettier-plugin-sort-imports`):
+
+1. `react` and `react-*`
+2. Third-party modules
+3. `@/api/*`, `@/stores/*`, `@/router/*`, `@/hooks/*`
+4. `@/pages/*`, `@/components/*`, `@/lib/*`, `@/utils/*`, `@/types/*`, `@/assets/*`
+
+Use `@/` alias exclusively under `src/` — avoid `../../` climbs.
+
+## Error Handling Patterns
+
+```ts
+try {
+  await cmdb.createApplication(body);
+  toast.success('Application created.');
+} catch (err) {
+  toast.error(await parseApiError(err));
+}
+```
+
+- 401 handler in `main.tsx`: Basic → clear session + `/login`; Cognito → try
+  refresh, else clear session + `/login` (no Cognito logout on expired refresh).
+- Explicit Log out: Cognito → hosted UI logout URL; Basic → `/login`.
+
+## Authentication Patterns
+
+### Auth modes
+
+`VITE_AUTH_MODE`: `basic` | `cognito` | `both` (default `both`).
+
+- **Basic**: username/password → `GET /me` with Basic header → role in sessionStorage.
+- **Cognito**: PKCE hosted UI, callback, refresh leeway (60s), 30s refresh tick
+  in `AppShell`.
+- Roles: `admin` | `app_editor` | `viewer` from `custom:roles` /
+  `cognito:groups` using `VITE_ADMIN_ROLE_CLAIM_VALUE` and
+  `VITE_APP_EDIT_ROLE_CLAIM_VALUE`.
+
+### Authorization header injection
+
+`main.tsx` registers the getter:
+
+```ts
+registerAuthorizationGetter(() =>
+  selectAuthorizationHeader(useAuthStore.getState()),
+);
+```
+
+Do **not** import the auth store inside `src/api/http.ts`.
+
+## Environment & Deployment
+
+### Environment Variables
+
+Build-time (Vite `import.meta.env`):
+
+- `VITE_API_BASE_URL` — runtime API base path (default `/api`).
+- `VITE_PUBLIC_BASE_PATH` — app base path (default `/`).
+- `VITE_DEV_API_PROXY_TARGET` — dev-only proxy target.
+- `VITE_AUTH_MODE`, `VITE_COGNITO_*`, `VITE_ADMIN_ROLE_CLAIM_VALUE`,
+  `VITE_APP_EDIT_ROLE_CLAIM_VALUE`.
+
+See `.env.example` for the full list.
+
+GitHub Environments (`sb`, `dev`, `tst`, `prod`) define AWS deploy vars and
+runtime config. Cognito build-time vars are wired through
+`argus-build-manual-any.yml`.
+
+### Deploy Workflows
+
+- `argus-build-manual-any.yml` — `workflow_dispatch`; pick environment + ref;
+  OIDC role; `npm run build:${env}`; S3 sync; CloudFront invalidate.
+- `quality-auto-report.yml` — ESLint, `tsc`, Vitest, build on PR/push to
+  `main`; comments SPA quality summary on PRs.
+- `tag-commit.yml` — manual sprint tag `vYYYY.SS.N`.
+
+### Local POC deploy
+
+`npm run deploy:poc` (`scripts/deploy-poc.mjs` + `.env.deploy.poc`) for ad-hoc
+pushes. Prefer GitHub Actions for shared environments.
+
+## Code Quality Rules
+
+- `strict: true`, no `any`, explicit return types on exports.
+- ESLint: `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`,
+  `@typescript-eslint/no-explicit-any`: error.
+- Single quotes, semicolons, 80-col print width (Prettier).
+- Boolean names: `isX`, `hasX`, `canX`, `shouldX`.
+- Prefer early returns and immutable updates.
+
+## Best Practices Checklist
+
+When adding a feature or page:
+
+- [ ] Function component with typed props; server state via Query hooks.
+- [ ] Imports use `@/` alias.
+- [ ] Network calls through `src/api/cmdb.ts`, not ad-hoc axios.
+- [ ] Errors via `parseApiError` + sonner toasts.
+- [ ] Loading and error UI handled.
+- [ ] Route guards updated in `src/router/index.tsx` if needed.
+- [ ] New env vars added to `.env.example` and deploy workflow.
+- [ ] Run `lint`, `type-check`, `test:unit:ci` before push.

@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Ensure we're in the project root (husky runs from git root, but be safe)
+cd "$(git rev-parse --show-toplevel)" || exit
+
+# Check if dependencies are installed
+if [ ! -d "node_modules" ]; then
+  echo "Error: node_modules not found. Please run 'npm install' first."
+  exit 1
+fi
+
+# Run tests before push
+npm run test:unit:ci
+npm run lint
+npm run type-check

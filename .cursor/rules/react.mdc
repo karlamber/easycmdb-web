@@ -1,0 +1,56 @@
+---
+description: React 19 + TypeScript conventions for easyCMDB SPA
+globs: src/**/*.{tsx,ts}
+alwaysApply: false
+---
+
+# React Conventions (easyCMDB)
+
+## Components
+
+- Function components only. No class components.
+- One component per file for pages; shared components may co-locate small helpers.
+- Typed props with `type XxxProps = { … }` — never `any`.
+- Default export for route pages; named exports for reusable components when appropriate.
+- Prefer explicit return types on exported functions and hooks.
+
+## Hooks
+
+- Follow Rules of Hooks — no conditional hook calls.
+- Server/async data: TanStack Query (`useQuery`, `useMutation`) via `src/hooks/*`.
+- Auth state: Zustand selectors from `@/stores/auth` — not React Context for session.
+- UI-only state: `useState` / `useMemo` / `useCallback` locally.
+- Side effects that touch auth or axios: wire in `main.tsx` or dedicated modules, not scattered in pages.
+
+## Routing
+
+- Import from `react-router` (v7 unified package), **not** `react-router-dom`.
+- Use `createBrowserRouter`, `RouterProvider`, `Navigate`, `Outlet`, `useNavigate`, `useLocation`.
+- Lazy-load page components with `React.lazy` + `<Suspense>` (see `router/index.tsx`).
+- Preserve existing URL paths and route names during changes.
+
+## Events & forms
+
+- Controlled inputs for forms; validate before submit.
+- `onSubmit` on `<form>` with `preventDefault` — avoid inline submit handlers without form semantics when a form exists.
+- Async handlers: `async function handleX(): Promise<void>` with try/catch + `parseApiError`.
+
+## JSX style
+
+- Self-close void elements (`<input />`, `<img />`).
+- `className` with Tailwind utilities; merge with `cn()` when conditional.
+- No inline `style={{}}` unless dynamic values cannot be expressed in Tailwind.
+- Keys on list items must be stable IDs, not array index (unless static reorder-free lists).
+
+## Testing
+
+- Use `@testing-library/react` patterns when adding component tests (Vitest + happy-dom).
+- Colocate tests in `__tests__/` next to the module under test.
+- Mock API modules, not axios globally, when testing pages.
+
+## Avoid
+
+- `any`, `as any`, non-null assertion (`!`) unless unavoidable (e.g. `document.getElementById`).
+- Fetching in `useEffect` when a Query hook already exists for that resource.
+- Duplicating auth logic outside `stores/auth.ts` and `router/index.tsx`.
+- Importing from `react-router-dom` — the project uses `react-router`.

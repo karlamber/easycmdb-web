@@ -1,0 +1,41 @@
+---
+description: shadcn/ui and Tailwind conventions for easyCMDB
+globs: src/components/**/*.{tsx,ts}
+alwaysApply: false
+---
+
+# shadcn/ui Conventions
+
+## Directory layout
+
+- **`src/components/ui/`** — shadcn/Radix primitives only (`button`, `input`, `table`, `sheet`, `dialog`, `alert-dialog`, `sonner`, …). Do not add feature-specific logic here.
+- **`src/components/`** (outside `ui/`) — feature components: `AppShell`, `DataTable`, `EntitySheet`, `PageHeader`, `StatusBadge`, etc.
+- Add new shadcn primitives via the CLI (`npx shadcn@latest add <component>`); keep `components.json` in sync.
+
+## Styling
+
+- Use **`cn()`** from `@/lib/utils` to merge Tailwind classes:
+  ```tsx
+  className={cn('base-classes', condition && 'conditional', className)}
+  ```
+- Prefer design tokens from `src/index.css` (`bg-primary`, `text-muted-foreground`, `border-border`, …) over hard-coded hex in feature components.
+- Primary teal: `#0f766e`; header bar: `#134e4a`; page surface: `#f1f5f9`.
+- Icons: **lucide-react** only — no Material Icons.
+
+## Component usage
+
+- Compose primitives in feature components; pages should import feature components or `ui/*`, not reimplement Radix behavior.
+- Tables: shadcn `Table` + `@tanstack/react-table` via shared `DataTable.tsx`.
+- Create/edit flows: `Sheet` via `EntitySheet.tsx`.
+- Destructive confirms: `AlertDialog` via `ConfirmDialog.tsx`.
+- Toasts: `toast` from `sonner` + `<Toaster />` in `main.tsx` — not custom toast divs.
+
+## Variants
+
+- Use `class-variance-authority` (`cva`) in `ui/` components where shadcn generated it; extend variants there, not by overriding with `!important` in pages.
+
+## Do not
+
+- Edit generated `ui/*` files heavily — if a primitive needs a project-wide change, update the shadcn component once.
+- Put CMDB domain types or API calls inside `components/ui/`.
+- Mix Quasar/Material class names or legacy SCSS modules.

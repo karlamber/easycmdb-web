@@ -1,0 +1,36 @@
+---
+description: Safety checks when editing GitHub Actions workflow YAML
+globs: **/.github/workflows/*.yml,**/.github/workflows/*.yaml,actions/**/action.yml
+alwaysApply: false
+---
+
+# Workflow Change Safety
+
+## Before editing
+
+1. Identify whether this is a **caller** (consumer) or **reusable** workflow (in `actions` repo).
+2. For reusable workflows: audit all callers before changing inputs (see `actions-repo.mdc`).
+3. State blast radius: which apps/environments deploy from this workflow.
+
+## Required patterns
+
+- OIDC for AWS: `permissions: id-token: write` + `contents: read` — no long-lived access keys.
+- Concurrency groups must include environment: `${{ github.workflow }}-${{ inputs.env }}`.
+- Bash: `set -euo pipefail`; use `jq` for JSON; run `shellcheck` on complex scripts.
+
+## Environment promotion
+
+Deploy workflows expose `env` input (`sb`, `dev`, `tst`, `prod`). Changes must be tested in **sb** first, then promoted in order. No skipping environments.
+
+## Validate locally
+
+```bash
+actionlint path/to/workflow.yml
+```
+
+## Anti-patterns
+
+- Pinning reusable workflows to `@main` without accepting breakage risk.
+- Changing `workflow_call` inputs without updating callers.
+- Shared concurrency groups across prod and non-prod.
+- Passing app secrets through workflow `env:` when SSM + `container_secrets` is the pattern.
