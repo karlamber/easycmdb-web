@@ -14,8 +14,19 @@ let getAuthorizationValue: () => string | null = () => null;
  */
 let on401: () => Promise<boolean> = async () => false;
 
+/**
+ * `crypto.randomUUID` exists only in a secure context (localhost or HTTPS).
+ * A hosts-file name served over HTTP is not one, so fall back there.
+ */
+function newRequestId(): string {
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 /** Stable per-tab ID so support can tie multiple API calls to one session. */
-const sessionCorrelationId = crypto.randomUUID();
+const sessionCorrelationId = newRequestId();
 
 export function registerAuthorizationGetter(fn: () => string | null): void {
   getAuthorizationValue = fn;
@@ -36,7 +47,7 @@ function createClient(): AxiosInstance {
 
   client.interceptors.request.use((config) => {
     config.headers['X-Correlation-Id'] = sessionCorrelationId;
-    config.headers['X-Request-Id'] = crypto.randomUUID();
+    config.headers['X-Request-Id'] = newRequestId();
 
     const value = getAuthorizationValue();
     if (value) {

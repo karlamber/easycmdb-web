@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      allowedHosts: ['easycmdb.yourcompany.com'],
       proxy: {
         '/api': {
           target: apiTarget,
