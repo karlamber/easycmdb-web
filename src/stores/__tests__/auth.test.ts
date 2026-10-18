@@ -285,6 +285,7 @@ describe('useAuthStore - cognito session', () => {
   });
 
   it('logout navigates to the hosted UI /logout URL when configured', () => {
+    vi.stubEnv('VITE_AUTH_MODE', 'cognito');
     vi.stubEnv(
       'VITE_COGNITO_DOMAIN',
       'https://example.auth.us-east-1.amazoncognito.com',
@@ -295,6 +296,7 @@ describe('useAuthStore - cognito session', () => {
       'http://localhost:9000/auth/callback',
     );
     vi.stubEnv('VITE_COGNITO_LOGOUT_URI', 'http://localhost:9000/login');
+    resetCognitoConfigCache();
     const assignSpy = vi
       .spyOn(window.location, 'assign')
       .mockImplementation(() => undefined);
