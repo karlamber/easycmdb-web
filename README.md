@@ -98,7 +98,7 @@ This is the short list the environment form offers: a code, a display name, and 
 | HTTP         | axios (`src/api/http.ts`)                             |
 | Hosting      | Static files on S3, fronted by CloudFront             |
 
-If you read three files: `src/router/index.tsx`, `src/api/http.ts`, and `src/pages/discover/AllApplicationsPage.tsx`.
+The three files that show how a screen is reached, how it calls the API, and how a list is rendered are `src/router/index.tsx`, `src/api/http.ts`, and `src/pages/discover/AllApplicationsPage.tsx`. Routing decides which page mounts, the HTTP client attaches the session, and the applications page is the pattern the other Discover lists follow.
 
 ## Local development
 

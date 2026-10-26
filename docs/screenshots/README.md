@@ -1,6 +1,6 @@
 # Screen captures
 
-Product screenshots for the [project README](../../README.md). Keep them in this folder so Vite does not bundle them with the SPA. `src/assets/` is for images the app itself ships, such as the hero.
+These captures illustrate the [project README](../../README.md). They stay in this folder so Vite does not bundle them into the SPA, while `src/assets/` remains the place for images the app itself ships, such as the hero. The tables below are the index from file to route, and the pictures follow each table so a reader can see the screen the route renders. Discover captures were taken as `viewer`. Management captures were taken as `admin`. `manage-nav.png` is the Discover applications page with the Management section outlined, and the two resource shots are the same edit dialog, once on Application scope and once on Environment scope.
 
 ## Sign-in
 
@@ -11,8 +11,6 @@ Product screenshots for the [project README](../../README.md). Keep them in this
 ![Sign in](login.png)
 
 ## Discover
-
-Signed in as `viewer`.
 
 | File                        | Route                               |
 | --------------------------- | ----------------------------------- |
@@ -36,8 +34,6 @@ Signed in as `viewer`.
 ![Provider account — aws-delphi-dev](discover-account.png)
 
 ## Management
-
-Signed in as `admin`. `manage-nav.png` is the discover applications page with the Management section outlined. The two resource shots are the same edit dialog, one on Application scope and one on Environment scope.
 
 | File                               | What it shows                                      |
 | ---------------------------------- | -------------------------------------------------- |
