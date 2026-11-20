@@ -54,7 +54,7 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.39.1",
     "@tailwindcss/vite": "^4.3.5",
     "@trivago/prettier-plugin-sort-imports": "^5.2.0",
     "@types/node": "^22.14.1",
