@@ -2,7 +2,7 @@ import type { ComplianceTag } from '@/types/cmdb';
 
 /**
  * Canonical compliance tag list. Must stay in sync with the API's
- * `argus-api-lambda/src/domain/compliance.ts` — the API rejects unknown
+ * `easycmdb-api/src/domain/compliance.ts` — the API rejects unknown
  * tags with 400, so any drift is caught at write time but it is still the
  * UI's job to only offer values the API will accept.
  *
