@@ -323,10 +323,6 @@ export function ResourcesPage() {
   }, [filterLandscapeId, environmentById]);
 
   useEffect(() => {
-    setForm((f) => ({ ...f, landscape_environment_id: null }));
-  }, [form.landscape_id]);
-
-  useEffect(() => {
     if (form.resource_scope === 'ENVIRONMENT') {
       setForm((f) => ({ ...f, application_id: null }));
     }
@@ -736,12 +732,21 @@ export function ResourcesPage() {
             <select
               id="form-landscape"
               value={form.landscape_id ?? ''}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  landscape_id: e.target.value || null,
-                }))
-              }
+              onChange={(e) => {
+                const landscapeId = e.target.value || null;
+                // Clear the provider account only when the user picks another
+                // landscape. Doing this in an effect on form.landscape_id also
+                // fired when openEdit loaded a resource, wiping its account.
+                setForm((f) =>
+                  f.landscape_id === landscapeId
+                    ? f
+                    : {
+                        ...f,
+                        landscape_id: landscapeId,
+                        landscape_environment_id: null,
+                      },
+                );
+              }}
               className="h-9 w-full rounded-md border border-slate-200 px-3 text-sm"
             >
               <option value="">Select landscape</option>
