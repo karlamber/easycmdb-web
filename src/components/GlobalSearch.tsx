@@ -28,9 +28,9 @@ import {
   emptySearchResults,
   SEARCH_KIND_LABELS,
   SEARCH_KINDS,
+  searchCatalog,
   type SearchKind,
   type SearchResult,
-  searchCatalog,
 } from '@/utils/global-search';
 
 type KindFilter = SearchKind | 'all';
