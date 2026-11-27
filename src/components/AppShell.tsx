@@ -22,6 +22,7 @@ import {
   useAuthStore,
 } from '@/stores/auth';
 
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -214,11 +215,12 @@ export default function AppShell({ children }: { children?: ReactNode }) {
           </Button>
           <Link
             to="/all-applications"
-            className="text-lg font-medium tracking-tight"
+            className="mr-2 shrink-0 text-lg font-medium tracking-tight"
           >
             easyCMDB
           </Link>
-          <div className="ml-auto flex items-center gap-3">
+          <GlobalSearch />
+          <div className="ml-auto flex shrink-0 items-center gap-3">
             <span className="hidden text-sm text-teal-100 sm:inline">
               {displayUser}
             </span>

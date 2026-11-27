@@ -24,6 +24,32 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --animate-edge-flow: edge-flow 1.6s linear infinite;
+  --animate-hub-pulse: hub-pulse 2.4s ease-out infinite;
+}
+
+/* Sign-in relationship map (RelationshipMap.tsx). */
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes hub-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(52 211 153 / 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 18px rgb(52 211 153 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(52 211 153 / 0);
+  }
+}
+
+@utility bg-dot-grid {
+  background-image: radial-gradient(rgb(94 234 212 / 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 :root {
