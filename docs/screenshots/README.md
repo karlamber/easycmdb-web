@@ -35,17 +35,17 @@ These captures illustrate the [project README](../../README.md). They stay in th
 
 ## Management
 
-| File                               | What it shows                                      |
-| ---------------------------------- | -------------------------------------------------- |
-| `manage-nav.png`                   | `/all-applications`, Management section outlined   |
-| `manage-environments.png`          | `/landscape-environments`                          |
-| `manage-resources.png`             | `/resources`                                       |
-| `manage-application-edit.png`      | Edit application dialog                            |
-| `manage-landscape-edit.png`        | Edit landscape dialog                              |
-| `manage-environment-edit.png`      | Edit landscape environment dialog                  |
-| `manage-resource-application.png`  | Edit resource dialog, Application scope            |
-| `manage-resource-environment.png`  | Edit resource dialog, Environment scope            |
-| `manage-hosting-providers.png`     | `/hosting-providers`                               |
+| File                              | What it shows                                    |
+| --------------------------------- | ------------------------------------------------ |
+| `manage-nav.png`                  | `/all-applications`, Management section outlined |
+| `manage-environments.png`         | `/landscape-environments`                        |
+| `manage-resources.png`            | `/resources`                                     |
+| `manage-application-edit.png`     | Edit application dialog                          |
+| `manage-landscape-edit.png`       | Edit landscape dialog                            |
+| `manage-environment-edit.png`     | Edit landscape environment dialog                |
+| `manage-resource-application.png` | Edit resource dialog, Application scope          |
+| `manage-resource-environment.png` | Edit resource dialog, Environment scope          |
+| `manage-hosting-providers.png`    | `/hosting-providers`                             |
 
 ![Admin — Management in the sidebar](manage-nav.png)
 
